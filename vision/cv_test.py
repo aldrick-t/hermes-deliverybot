@@ -5,18 +5,28 @@ from matplotlib import pyplot as plt
 
 cap = cv2. VideoCapture(0)
 
-while True:
-    ret, frame = cap.read()
-    width = int(cap.get(3))
-    height = int(cap. get(4))
+def generate_aruco():
+    # Define the dictionary we want to use
+    aruco_dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_6X6_250)
+
+    # Generate a marker
+    marker_id = 30
+    marker_size = 200  # Size in pixels
+    marker_image = cv2.aruco.generateImageMarker(aruco_dict, marker_id, marker_size)
+    cv2.imwrite('marker_42.png', marker_image)
+    plt.imshow(marker_image, cmap='gray', interpolation='nearest')
+    plt.axis('off')  # Hide axes
+    plt.title(f'ArUco Marker {marker_id}')
+    plt.show()
     
+def color_masking():
     #color conversion to HSV
     hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
     
     #Color range selected to pale lime for testing
     # https://colorizer.org/ 
-    lower_limit = np.array([78,20,20]) #blue range
-    upper_limit = np.array([260,255,255])
+    lower_limit = np.array([90,100,100]) #blue range
+    upper_limit = np.array([230,255,255])
     
     #mask to select the color range in the frame
     mask = cv2.inRange(hsv, lower_limit, upper_limit)
@@ -25,18 +35,36 @@ while True:
     #blends image with bitwise_and then selects using mask
     result = cv2.bitwise_and(frame, frame, mask=mask)
     
+    return result, mask
+
+def edge_detection(result, mask):
     #laplasian filter
-    laplasian = cv2.Laplacian(mask, cv2.CV_64F)
+    laplasian = cv2.Laplacian(result, cv2.CV_64F)
     laplasian = np.uint8(laplasian)
-    cv2.imshow('laplasian', laplasian)
     
     #canny edge detection
     edges = cv2.Canny(mask, 100, 100)
-    cv2.imshow('Canny', edges)
+    
+    return edges, laplasian
+
+while True:
+    ret, frame = cap.read()
+    width = int(cap.get(3))
+    height = int(cap. get(4))
+    
+    result, mask = color_masking()
+    
+    edges, laplasian = edge_detection(result, mask)
     
     #display the result frame and mask
     cv2.imshow('frame', result)
     cv2.imshow('mask', mask)
+    
+    #display edge detection and filtering
+    cv2.imshow('Canny', edges)
+    cv2.imshow('laplasian', laplasian)
+    
+    generate_aruco()
     
     if cv2.waitKey(1) == ord('q'):
         break
