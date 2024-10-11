@@ -25,8 +25,10 @@ def color_masking():
     
     #Color range selected to pale lime for testing
     # https://colorizer.org/ 
-    lower_limit = np.array([90,100,100]) #blue range
+    lower_limit = np.array([90,20,20]) #blue range
     upper_limit = np.array([230,255,255])
+    
+    
     
     #mask to select the color range in the frame
     mask = cv2.inRange(hsv, lower_limit, upper_limit)
@@ -57,14 +59,15 @@ while True:
     edges, laplasian = edge_detection(result, mask)
     
     #display the result frame and mask
-    cv2.imshow('frame', result)
+    cv2.imshow('frame', frame)
+    cv2.imshow('blend', result)
     cv2.imshow('mask', mask)
     
     #display edge detection and filtering
     cv2.imshow('Canny', edges)
     cv2.imshow('laplasian', laplasian)
     
-    generate_aruco()
+    
     
     if cv2.waitKey(1) == ord('q'):
         break
