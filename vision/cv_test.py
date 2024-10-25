@@ -19,6 +19,25 @@ def generate_aruco():
     plt.title(f'ArUco Marker {marker_id}')
     plt.show()
     
+def detect_aruco():
+    # Load the dictionary and the parameters
+    aruco_dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_6X6_250)
+    parameters = cv2.aruco.DetectorParameters()
+
+    # Load the image
+    image = cv2.imread('marker_42.png')
+
+    # Detect the markers
+    corners, ids, rejectedImgPoints = cv2.aruco.detectMarkers(image, aruco_dict, parameters=parameters)
+
+    # Draw the markers
+    image = cv2.aruco.drawDetectedMarkers(image, corners, ids)
+
+    # Display the image
+    plt.imshow(image)
+    plt.axis('off')
+    plt.show()
+
 def color_masking():
     #color conversion to HSV
     hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
@@ -27,8 +46,6 @@ def color_masking():
     # https://colorizer.org/ 
     lower_limit = np.array([90,20,20]) #blue range
     upper_limit = np.array([230,255,255])
-    
-    
     
     #mask to select the color range in the frame
     mask = cv2.inRange(hsv, lower_limit, upper_limit)
@@ -59,7 +76,7 @@ while True:
     edges, laplasian = edge_detection(result, mask)
     
     #display the result frame and mask
-    cv2.imshow('frame', frame)
+    cv2.imshow('origin', frame)
     cv2.imshow('blend', result)
     cv2.imshow('mask', mask)
     
@@ -67,7 +84,7 @@ while True:
     cv2.imshow('Canny', edges)
     cv2.imshow('laplasian', laplasian)
     
-    
+    detect_aruco()
     
     if cv2.waitKey(1) == ord('q'):
         break
