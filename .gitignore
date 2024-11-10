@@ -172,3 +172,12 @@ cython_debug/
 
 #Secrets
 hermes-esp32cam/include/secrets.h
+
+# workspace files
+.vscode/
+hermes-deliverybot.code-workspace
+
+
+# DS_Store files
+.DS_Store
+
