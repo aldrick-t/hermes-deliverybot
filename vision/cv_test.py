@@ -2,12 +2,13 @@
 import numpy as np
 import cv2
 from matplotlib import pyplot as plt
+from aruco_dict import ARUCO_DICT
 
 cap = cv2. VideoCapture(0)
 
 def generate_aruco():
     # Define the dictionary we want to use
-    aruco_dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_6X6_250)
+    aruco_dict = cv2.aruco.getPredefinedDictionary(ARUCO_DICT["DICT_6X6_250"])
 
     # Generate a marker
     marker_id = 30

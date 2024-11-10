@@ -1,4 +1,4 @@
-# ArUco Detection and Pose Estimation Module
+# ArUco Detection and Pose Estimation Module, Calibration Required
 
 import numpy as np
 import cv2
