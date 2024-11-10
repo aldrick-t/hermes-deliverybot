@@ -13,7 +13,7 @@
 #include "secrets.h"
 
 //Replace with your network credentials
-const char* ssid = home_ssid_2g;
+const char* APssid = home_ssid_2g;
 const char* password = home_password;
 
 #define PART_BOUNDARY "123456789000000000000987654321"
@@ -232,7 +232,7 @@ void setup() {
     return;
   }
   // Wi-Fi connection
-  WiFi.begin(ssid, password);
+  WiFi.begin(APssid, password);
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);
     Serial.print(".");
