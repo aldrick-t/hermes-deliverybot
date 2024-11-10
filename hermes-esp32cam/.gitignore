@@ -4,3 +4,6 @@
 .vscode/launch.json
 .vscode/ipch
 
+#Secrets
+hermes-esp32cam/include/secrets.h
+
