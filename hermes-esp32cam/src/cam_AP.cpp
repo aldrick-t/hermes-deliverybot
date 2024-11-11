@@ -1,34 +1,28 @@
-
 #include "esp_camera.h"
 #include <WiFi.h>
 #include "esp_timer.h"
 #include "img_converters.h"
 #include "Arduino.h"
 #include "fb_gfx.h"
-#include "soc/soc.h" //disable brownout problems
-#include "soc/rtc_cntl_reg.h"  //disable brownout problems
+#include "soc/soc.h" // Disable brownout problems
+#include "soc/rtc_cntl_reg.h"  // Disable brownout problems
 #include "esp_http_server.h"
 
-//secrets containing passwords and ssid
+// Secrets containing passwords and SSID
 #include "secrets.h"
 
-//Replace with your network credentials
+// Replace with your network credentials
 const char* ssid = home_ssid_2g;
 const char* password = home_password;
 
-//softAP SSID and password
+// SoftAP SSID and password
 const char* APssid = "hermes_cam";
 const char* APpassword = "hermes_cam";
 
 #define PART_BOUNDARY "123456789000000000000987654321"
 
-// This project was tested with the AI Thinker Model, M5STACK PSRAM Model and M5STACK WITHOUT PSRAM
-#define CAMERA_MODEL_AI_THINKER
-//#define CAMERA_MODEL_M5STACK_PSRAM
-//#define CAMERA_MODEL_M5STACK_WITHOUT_PSRAM
 
-// Not tested with this model
-//#define CAMERA_MODEL_WROVER_KIT
+#define CAMERA_MODEL_AI_THINKER
 
 #if defined(CAMERA_MODEL_AI_THINKER)
   #define PWDN_GPIO_NUM     32
@@ -52,11 +46,7 @@ const char* APpassword = "hermes_cam";
   #error "Camera model not selected"
 #endif
 
-// Set Static IP address
-IPAddress local_IP(192, 168, 1, 184);
-// Set Gateway IP address
-IPAddress gateway(192, 168, 1, 1);
-IPAddress subnet(255, 255, 0, 0);
+
 
 static const char* _STREAM_CONTENT_TYPE = "multipart/x-mixed-replace;boundary=" PART_BOUNDARY;
 static const char* _STREAM_BOUNDARY = "\r\n--" PART_BOUNDARY "\r\n";
@@ -69,7 +59,7 @@ static esp_err_t stream_handler(httpd_req_t *req){
   esp_err_t res = ESP_OK;
   size_t _jpg_buf_len = 0;
   uint8_t * _jpg_buf = NULL;
-  char * part_buf[64];
+  char part_buf[64]; // Corrected buffer allocation
 
   res = httpd_resp_set_type(req, _STREAM_CONTENT_TYPE);
   if(res != ESP_OK){
@@ -98,8 +88,8 @@ static esp_err_t stream_handler(httpd_req_t *req){
       }
     }
     if(res == ESP_OK){
-      size_t hlen = snprintf((char *)part_buf, 64, _STREAM_PART, _jpg_buf_len);
-      res = httpd_resp_send_chunk(req, (const char *)part_buf, hlen);
+      size_t hlen = snprintf(part_buf, 64, _STREAM_PART, _jpg_buf_len);
+      res = httpd_resp_send_chunk(req, part_buf, hlen);
     }
     if(res == ESP_OK){
       res = httpd_resp_send_chunk(req, (const char *)_jpg_buf, _jpg_buf_len);
@@ -137,16 +127,17 @@ void startCameraServer(){
   //Serial.printf("Starting web server on port: '%d'\n", config.server_port);
   if (httpd_start(&stream_httpd, &config) == ESP_OK) {
     httpd_register_uri_handler(stream_httpd, &index_uri);
+    Serial.println("Camera Stream Ready! Go to: http://<ESP_IP>/");
   }
 }
 
 void setup() {
-  WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 0); //disable brownout detector
+  WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 0); // Disable brownout detector
  
-  Serial.begin(115200);
+  Serial.begin(9600);
   Serial.setDebugOutput(false);
 
-  // flash test
+  // Flash test
   const int LED_PIN = 4;
   pinMode(LED_PIN, OUTPUT);
   digitalWrite(LED_PIN, HIGH);
@@ -191,12 +182,40 @@ void setup() {
     Serial.printf("Camera init failed with error 0x%x", err);
     return;
   }
-  // Wi-Fi connection
-  if(!WiFi.config(local_IP, gateway, subnet)) {
-    Serial.println("STA Failed to configure");
-  }   
-  WiFi.softAP(APssid, APpassword);
+
+  // Initialize WiFi in STA and AP mode
+  WiFi.mode(WIFI_AP_STA);
   
+  // // Start Soft AP
+  // IPAddress apIP(192, 168, 4, 1);
+  // IPAddress apSubnet(255, 255, 255, 0);
+
+  // WiFi.softAPConfig(); // Configure AP IP
+
+  if(WiFi.softAP(APssid, APpassword)){
+    Serial.println("Access Point Started");
+    Serial.print("AP IP: ");
+    Serial.println(WiFi.softAPIP());
+  } else {
+    Serial.println("Failed to start Access Point");
+  }
+
+
+  WiFi.begin(ssid, password);
+  Serial.print("Connecting to WiFi");
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+  Serial.println(" connected");
+
+  Serial.print("Station IP: ");
+  Serial.println(WiFi.localIP());
+
+  Serial.print("Configured Station IP: ");
+  Serial.println(WiFi.localIP());
+
+
   // Start streaming web server
   startCameraServer();
 }
