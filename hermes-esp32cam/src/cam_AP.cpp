@@ -12,8 +12,8 @@
 #include "secrets.h"
 
 // Replace with your network credentials
-const char* ssid = home_ssid_2g;
-const char* password = home_password;
+const char* ssid = blackberry_ssid;
+const char* password = blackberry_password;
 
 // SoftAP SSID and password
 const char* APssid = "hermes_cam";
@@ -46,7 +46,11 @@ const char* APpassword = "hermes_cam";
   #error "Camera model not selected"
 #endif
 
-
+// Set Static IP address for STA
+IPAddress local_IP(192, 168, 1, 184);
+// Set Gateway IP address for STA
+IPAddress gateway(192, 168, 1, 1);
+IPAddress subnet(255, 255, 255, 0); // Corrected subnet mask
 
 static const char* _STREAM_CONTENT_TYPE = "multipart/x-mixed-replace;boundary=" PART_BOUNDARY;
 static const char* _STREAM_BOUNDARY = "\r\n--" PART_BOUNDARY "\r\n";
@@ -113,23 +117,44 @@ static esp_err_t stream_handler(httpd_req_t *req){
   return res;
 }
 
+// Optional: Implement an index handler to serve a simple HTML page
+static esp_err_t index_handler(httpd_req_t *req){
+  const char* html_content = "<html><body><h1>ESP32-CAM Stream</h1><img src=\"/stream\" /></body></html>";
+  httpd_resp_set_type(req, "text/html");
+  httpd_resp_send(req, html_content, strlen(html_content));
+  return ESP_OK;
+}
+
 void startCameraServer(){
   httpd_config_t config = HTTPD_DEFAULT_CONFIG();
   config.server_port = 80;
 
-  httpd_uri_t index_uri = {
-    .uri       = "/",
+  // URI handler for the MJPEG stream
+  httpd_uri_t stream_uri = {
+    .uri       = "/stream",
     .method    = HTTP_GET,
     .handler   = stream_handler,
     .user_ctx  = NULL
   };
   
-  //Serial.printf("Starting web server on port: '%d'\n", config.server_port);
+  // URI handler for the index page (optional)
+  httpd_uri_t index_uri = {
+    .uri       = "/",
+    .method    = HTTP_GET,
+    .handler   = index_handler, // You can implement an index_handler to serve a simple HTML page
+    .user_ctx  = NULL
+  };
+  
+  // Start the HTTP server
   if (httpd_start(&stream_httpd, &config) == ESP_OK) {
+    // Register the stream handler
+    httpd_register_uri_handler(stream_httpd, &stream_uri);
+    // Register the index handler
     httpd_register_uri_handler(stream_httpd, &index_uri);
-    Serial.println("Camera Stream Ready! Go to: http://<ESP_IP>/");
+    Serial.println("Camera Stream Ready! Go to: http://<ESP_IP>/stream");
   }
 }
+
 
 void setup() {
   WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 0); // Disable brownout detector
@@ -138,11 +163,11 @@ void setup() {
   Serial.setDebugOutput(false);
 
   // Flash test
-  const int LED_PIN = 4;
-  pinMode(LED_PIN, OUTPUT);
-  digitalWrite(LED_PIN, HIGH);
-  delay(250);
-  digitalWrite(LED_PIN, LOW);
+  // const int LED_PIN = 4;
+  // pinMode(LED_PIN, OUTPUT);
+  // digitalWrite(LED_PIN, HIGH);
+  // delay(250);
+  // digitalWrite(LED_PIN, LOW);
   
   camera_config_t config;
   config.ledc_channel = LEDC_CHANNEL_0;
@@ -185,13 +210,22 @@ void setup() {
 
   // Initialize WiFi in STA and AP mode
   WiFi.mode(WIFI_AP_STA);
+
+  // Configure STA static IP before connecting
+  if (!WiFi.config(local_IP, gateway, subnet)) {
+    Serial.println("STA Failed to configure");
+  } else {
+    Serial.print("Configured Station IP: ");
+    Serial.println(WiFi.localIP());
+  }
   
-  // // Start Soft AP
-  // IPAddress apIP(192, 168, 4, 1);
-  // IPAddress apSubnet(255, 255, 255, 0);
-
-  // WiFi.softAPConfig(); // Configure AP IP
-
+  // Start Soft AP with static IP configuration
+  IPAddress apIP(192, 168, 4, 1);
+  IPAddress apSubnet(255, 255, 255, 0);
+  if(!WiFi.softAPConfig(apIP, apIP, apSubnet)){
+    Serial.println("AP Config Failed");
+  }
+  
   if(WiFi.softAP(APssid, APpassword)){
     Serial.println("Access Point Started");
     Serial.print("AP IP: ");
@@ -200,21 +234,17 @@ void setup() {
     Serial.println("Failed to start Access Point");
   }
 
+  // Connect to WiFi as Station
+  // WiFi.begin(ssid, password);
+  // Serial.print("Connecting to WiFi");
+  // while (WiFi.status() != WL_CONNECTED) {
+  //   delay(500);
+  //   Serial.print(".");
+  // }
+  // Serial.println(" connected");
 
-  WiFi.begin(ssid, password);
-  Serial.print("Connecting to WiFi");
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(500);
-    Serial.print(".");
-  }
-  Serial.println(" connected");
-
-  Serial.print("Station IP: ");
-  Serial.println(WiFi.localIP());
-
-  Serial.print("Configured Station IP: ");
-  Serial.println(WiFi.localIP());
-
+  // Serial.print("Station IP: ");
+  // Serial.println(WiFi.localIP());
 
   // Start streaming web server
   startCameraServer();

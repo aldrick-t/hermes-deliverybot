@@ -1,66 +1,74 @@
 import cv2
 import cv2.aruco as aruco
-import glob
+import urllib.request
+import numpy as np
 from aruco_dict import ARUCO_DICT
 
 def detect_aruco_video():
     """
-    Detects ArUco markers in a live video stream and prints their IDs.
-
+    Detects ArUco markers in a live video stream from ESP32-CAM and prints their IDs.
+    
     Returns:
         None
     """
-    # Initialize video capture (0 for default camera)
-    cap = cv2.VideoCapture(0)  # Replace with your video source if different
+    # Stream URL pointing to /stream endpoint
+    stream_url = "http://192.168.4.1/stream"  # ESP32-CAM AP IP address with /stream endpoint
     
-    if not cap.isOpened():
-        print("Error: Could not open video stream.")
-        return
+    # Open the stream using urllib
+    stream = urllib.request.urlopen(stream_url)
+    bytes_data = b''
     
     # Define the ArUco dictionary
     aruco_dict = aruco.getPredefinedDictionary(ARUCO_DICT["DICT_4X4_100"])
     
     # Initialize the detector parameters using default values
-    parameters = cv2.aruco.DetectorParameters()
+    parameters = aruco.DetectorParameters()
     
-    print("Starting ArUco marker detection. Press 'q' to quit.")
+    print("Starting ArUco marker detection from ESP32-CAM stream. Press 'q' to quit.")
     
-    while True:
-        ret, frame = cap.read()
-        if not ret:
-            print("Failed to grab frame.")
-            break
-        
-        # Convert to grayscale
-        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        
-        # Detect the markers in the image
-        corners, ids, rejectedImgPoints = aruco.detectMarkers(gray, aruco_dict, parameters=parameters)
-        
-        # If markers are detected
-        if ids is not None:
-            for i, marker_id in enumerate(ids.flatten()):
-                print(f"Detected Marker ID: {marker_id}")
-                # Draw marker boundaries and IDs on the frame
-                aruco.drawDetectedMarkers(frame, corners, ids)
-                # Compute the center of the marker to place the text
-                c = corners[i][0]
-                center_x = int(c[:, 0].mean())
-                center_y = int(c[:, 1].mean())
-                cv2.putText(frame, str(marker_id), (center_x, center_y),
-                            cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
-        
-        # Display the resulting frame
-        cv2.imshow('ArUco Marker Detection', frame)
-        
-        # Exit the loop when 'q' is pressed
-        if cv2.waitKey(1) & 0xFF == ord('q'):
-            print("Exiting marker detection.")
-            break
-    
-    # Release the capture and close windows
-    cap.release()
-    cv2.destroyAllWindows()
+    try:
+        while True:
+            bytes_data += stream.read(1024)
+            a = bytes_data.find(b'\xff\xd8')  # Start of JPEG
+            b = bytes_data.find(b'\xff\xd9')  # End of JPEG
+            if a != -1 and b != -1 and b > a:
+                jpg = bytes_data[a:b+2]
+                bytes_data = bytes_data[b+2:]
+                
+                # Decode JPEG to OpenCV frame
+                frame = cv2.imdecode(np.frombuffer(jpg, dtype=np.uint8), cv2.IMREAD_COLOR)
+                
+                if frame is not None:
+                    # Convert to grayscale
+                    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+                    
+                    # Detect ArUco markers
+                    corners, ids, rejected = aruco.detectMarkers(gray, aruco_dict, parameters=parameters)
+                    
+                    # Draw detected markers and print their IDs
+                    if ids is not None:
+                        aruco.drawDetectedMarkers(frame, corners, ids)
+                        for i, marker_id in enumerate(ids.flatten()):
+                            print(f"Detected Marker ID: {marker_id}")
+                            # Compute the center of the marker to place the text
+                            c = corners[i][0]
+                            center_x = int(c[:, 0].mean())
+                            center_y = int(c[:, 1].mean())
+                            cv2.putText(frame, str(marker_id), (center_x, center_y),
+                                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+                    
+                    # Display the resulting frame
+                    cv2.imshow('ArUco Marker Detection', frame)
+                    
+                    # Exit the loop when 'q' is pressed
+                    if cv2.waitKey(1) & 0xFF == ord('q'):
+                        print("Exiting marker detection.")
+                        break
+    except KeyboardInterrupt:
+        pass
+    finally:
+        # Release resources
+        cv2.destroyAllWindows()
 
 # Example usage
 if __name__ == "__main__":
