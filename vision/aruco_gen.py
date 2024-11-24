@@ -27,7 +27,6 @@ def generate_aruco(marker_id):
 
 
 generate_aruco(30)
+generate_aruco(31)
+generate_aruco(40)
 generate_aruco(60)
-generate_aruco(90)
-generate_aruco(33)
-generate_aruco(96)
