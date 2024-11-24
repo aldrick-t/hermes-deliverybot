@@ -12,8 +12,8 @@
 #include "secrets.h"
 
 // Replace with your network credentials
-const char* ssid = blackberry_ssid;
-const char* password = blackberry_password;
+const char* ssid = "steren_2_4G";
+const char* password = "password";
 
 #define PART_BOUNDARY "123456789000000000000987654321"
 
