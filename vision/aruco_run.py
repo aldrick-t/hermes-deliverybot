@@ -70,6 +70,5 @@ def detect_aruco_video():
         # Release resources
         cv2.destroyAllWindows()
 
-# Example usage
 if __name__ == "__main__":
     detect_aruco_video()
