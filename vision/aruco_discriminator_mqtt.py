@@ -8,7 +8,7 @@ from aruco_dict import ARUCO_DICT
 # MQTT Configuration
 MQTT_SERVER = "192.168.1.7"
 MQTT_PORT = 1883
-MQTT_TOPIC = "EV3/status"
+MQTT_TOPIC = "cam/status"
 
 
 # Marker Mapping
