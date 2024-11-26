@@ -12,7 +12,7 @@ def detect_aruco_headless():
         None
     """
     # Stream URL pointing to /stream endpoint
-    stream_url = "http://192.168.4.1/stream"  # ESP32-CAM AP IP address with /stream endpoint
+    stream_url = "http://192.168.1.184/stream"  # ESP32-CAM AP IP address with /stream endpoint
     
     # Open the stream using urllib
     stream = urllib.request.urlopen(stream_url)

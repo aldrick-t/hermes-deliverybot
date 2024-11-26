@@ -6,9 +6,9 @@ import numpy as np
 from aruco_dict import ARUCO_DICT
 
 # MQTT Configuration
-MQTT_SERVER = "192.168.1.7"
+MQTT_SERVER = "192.168.1.36"
 MQTT_PORT = 1883
-MQTT_TOPIC = "cam/status"
+MQTT_TOPIC = "EV3/status"
 
 
 # Marker Mapping
@@ -29,7 +29,7 @@ def publish_status(client, status):
     print(f"Published status: {status}")
 
 def detect_aruco_headless():
-    stream_url = "http://192.168.4.1/stream"
+    stream_url = "http://192.168.1.184/stream"
     stream = urllib.request.urlopen(stream_url)
     bytes_data = b''
     
@@ -59,9 +59,11 @@ def detect_aruco_headless():
                     
                     if ids is not None:
                         for marker_id in ids.flatten():
+                            print(f"Detected Marker ID: {marker_id}")
                             if marker_id in MARKER_MAP:
                                 status = MARKER_MAP[marker_id]["status"]
                                 publish_status(mqtt_client, status)
+                                print(f"Decision: {MARKER_MAP[marker_id]}")
     except KeyboardInterrupt:
         print("Exiting marker detection.")
     finally:
