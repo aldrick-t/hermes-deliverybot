@@ -156,6 +156,7 @@ void setup() {
  
   Serial.begin(9600);
   Serial.setDebugOutput(false);
+  pinMode(33, OUTPUT);
 
   camera_config_t config;
   config.ledc_channel = LEDC_CHANNEL_0;
@@ -215,6 +216,7 @@ void setup() {
     Serial.print(".");
   }
   Serial.println(" connected");
+  digitalWrite(33, LOW);
 
   Serial.print("Station IP: ");
   Serial.println(WiFi.localIP());
