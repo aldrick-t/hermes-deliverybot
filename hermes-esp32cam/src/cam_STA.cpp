@@ -12,8 +12,8 @@
 #include "secrets.h"
 
 // Replace with your network credentials
-const char* ssid = blackberry_ssid;
-const char* password = blackberry_password;
+const char* ssid = "steren_2_4G";
+const char* password = "password";
 
 #define PART_BOUNDARY "123456789000000000000987654321"
 
@@ -156,6 +156,7 @@ void setup() {
  
   Serial.begin(9600);
   Serial.setDebugOutput(false);
+  pinMode(33, OUTPUT);
 
   camera_config_t config;
   config.ledc_channel = LEDC_CHANNEL_0;
@@ -215,6 +216,7 @@ void setup() {
     Serial.print(".");
   }
   Serial.println(" connected");
+  digitalWrite(33, LOW);
 
   Serial.print("Station IP: ");
   Serial.println(WiFi.localIP());
