@@ -6,16 +6,19 @@ BluetoothSerial SerialBT;
 
 //Variables para almacenar los datos recibidos
 int infraredDistance = 0;
-int reflectedLight = 0;
-String detectedColor = "";
+int batteryPercentage = 0;
+String boxStatus = "";
 
 // Configuración WiFi y MQTT
 const char* ssid = "steren_2_4G";
 const char* password = "password";
-const char* mqttServer = "192.168.1.7";
+const char* mqttServer = "192.168.1.36";
 const int mqttPort = 1883;
 const char* mqttUser = "";
 const char* mqttPassword = "";
+
+const char* mqttTopic_statusIn = "EV3/status_out";
+String receivedStatus = "";
 
 WiFiClient espClient;
 PubSubClient client(espClient);
@@ -28,6 +31,7 @@ void setup() {
   connectToWiFi();
 
   client.setServer(mqttServer, mqttPort);
+  client.setCallback(callback);
   connectToMQTT();
 }
 
@@ -49,32 +53,55 @@ void loop() {
   }
   client.loop();
 
+  //decodeMessage("data");
+  //publishToMQTT();
+
   delay(100);
 }
 
-//Función para decodificar el mensaje recibido
-void decodeMessage(String message) {
-  if (message.startsWith("IR Distance:")) {
-    int irIndex = message.indexOf(":") + 1;
-    int lightIndex = message.indexOf("Light:");
-    int colorIndex = message.indexOf("Color:");
+void callback(char* topic, byte* message, unsigned int length){
+  
+  receivedStatus = "";
+  for (int i = 0; i < length; i++){
+    receivedStatus += (char)message[i];
+  }
 
-    // Extraer y convertir los datos
-    infraredDistance = message.substring(irIndex, lightIndex).toInt();
-    reflectedLight = message.substring(lightIndex + 6, colorIndex).toInt();
-    detectedColor = message.substring(colorIndex + 6).trim();
+  Serial.println(receivedStatus);
+  SerialBT.println(receivedStatus);
+}
+
+// Función para decodificar el mensaje recibido
+void decodeMessage(String message) {
+  // Cortar los primeros 13 caracteres
+  if (message.length() > 13) {
+    message = message.substring(13);
+    Serial.println(message);
+  }
+
+  // Comprobar si el mensaje tiene al menos tres 'A's para separar los datos
+  int firstA = message.indexOf('A');
+  int secondA = message.indexOf('A', firstA + 1);
+  int thirdA = message.indexOf('A', secondA + 1);
+
+  if (firstA != -1 && secondA != -1 && thirdA != -1) {
+    // Extraer los datos basados en las posiciones de 'A'
+    infraredDistance = message.substring(firstA + 1, secondA).toInt();
+    batteryPercentage = message.substring(secondA + 1, thirdA).toInt();
+    boxStatus = message.substring(thirdA + 1);
 
     // Imprimir los datos decodificados
     Serial.print("Distancia infrarroja: ");
     Serial.println(infraredDistance);
-    Serial.print("Luz reflejada: ");
-    Serial.println(reflectedLight);
-    Serial.print("Color detectado: ");
-    Serial.println(detectedColor);
+    Serial.print("Batería restante: ");
+    Serial.println(batteryPercentage);
+    Serial.print("Estado de la caja: ");
+    Serial.println(boxStatus);
   } else {
     Serial.println("Mensaje con formato no reconocido.");
   }
 }
+
+
 
 void connectToWiFi() {
   Serial.print("Conectando a WiFi...");
@@ -93,6 +120,7 @@ void connectToMQTT() {
   while (!client.connected()) {
     if (client.connect("ESP32_Client", mqttUser, mqttPassword)) {
       Serial.println("\nConexión MQTT establecida.");
+      client.subscribe(mqttTopic_statusIn);
     } else {
       Serial.print(".");
       delay(500);
@@ -102,15 +130,18 @@ void connectToMQTT() {
 
 // Publicacion de los datos en MQTT
 void publishToMQTT() {
+  Serial.println("se ha cambiado a seccion Publish2MQTT");
   String topicIR = "EV3/infrared";
-  String topicLight = "EV3/light";
-  String topicColor = "EV3/color";
+  String topicBattery = "EV3/battery";
+  String topicBox = "EV3/box_state";
 
   // Publicar cada dato en su tema correspondiente
-  client.publish(topicIR.c_str(), String(infraredDistance).c_str());
-  client.publish(topicLight.c_str(), String(reflectedLight).c_str());
-  client.publish(topicColor.c_str(), detectedColor.c_str());
+  client.publish("EV3/infrared", String(infraredDistance).c_str());
+  //Serial.println(infraredDistance);
+  client.publish("EV3/battery", String(batteryPercentage).c_str());
+  //Serial.println(batteryPercentage);
+  client.publish("EV3/box_state", boxStatus.c_str());
+  //Serial.println(boxStatus);
 
   Serial.println("Datos publicados en MQTT.");
 }
-
