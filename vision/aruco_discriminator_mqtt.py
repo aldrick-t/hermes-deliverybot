@@ -8,14 +8,15 @@ from aruco_dict import ARUCO_DICT
 # MQTT Configuration
 MQTT_SERVER = "192.168.1.36"
 MQTT_PORT = 1883
-MQTT_TOPIC = "EV3/status"
+MQTT_TOPIC_STATUS = "EV3/status"
+MQTT_TOPIC_LOCATION = "EV3/location"
 
 
 # Marker Mapping
 MARKER_MAP = {
     31: {"name": "B4_Subway_31", "status": "STA_TRUE"},
     40: {"name": "Building_4", "status": "DEST_TRUE"},
-    20: {"name": "Building_2", "status": "DEST_FALSE"}
+    60: {"name": "Building_6", "status": "DEST_FALSE"}
 }
 
 def on_connect(client, userdata, flags, rc):
@@ -24,8 +25,9 @@ def on_connect(client, userdata, flags, rc):
     else:
         print(f"Failed to connect, return code {rc}")
 
-def publish_status(client, status):
-    client.publish(MQTT_TOPIC, status)
+def publish_mqtt(client, status, name):
+    client.publish(MQTT_TOPIC_STATUS, status)
+    client.publish(MQTT_TOPIC_LOCATION, status)
     print(f"Published status: {status}")
 
 def detect_aruco_headless():
@@ -62,7 +64,8 @@ def detect_aruco_headless():
                             print(f"Detected Marker ID: {marker_id}")
                             if marker_id in MARKER_MAP:
                                 status = MARKER_MAP[marker_id]["status"]
-                                publish_status(mqtt_client, status)
+                                location = MARKER_MAP[marker_id]["name"]
+                                publish_mqtt(mqtt_client, status, location)
                                 print(f"Decision: {MARKER_MAP[marker_id]}")
     except KeyboardInterrupt:
         print("Exiting marker detection.")
