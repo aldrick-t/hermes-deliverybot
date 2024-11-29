@@ -1,0 +1,3 @@
+# Esta dependencia es solo informativa para el entorno EV3
+pybricks-micropython==1.0.0
+
