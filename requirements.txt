@@ -6,7 +6,7 @@ cycler==0.12.1
 debugpy==1.8.7
 decorator==5.1.1
 executing==2.1.0
-fonttools==4.53.1
+fonttools==4.61.0
 ipykernel==6.29.5
 ipython==8.29.0
 jedi==0.19.1
